@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Instrument Master List</title>
+  <!-- SheetJS: free, open-source Excel (.xlsx/.xls) reader -->
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+  <style>
+    :root {
+      --primary:#2563eb; --primary-d:#1d4ed8; --success:#16a34a;
+      --danger:#dc2626;  --warning:#d97706;   --bg:#f1f5f9;
+      --card:#ffffff;    --border:#e2e8f0;    --text:#1e293b;
+      --muted:#64748b;   --radius:12px;       --shadow:0 4px 24px rgba(0,0,0,.08);
+    }
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+
+    /* ── Header ── */
+    header{background:linear-gradient(135deg,#1e3a8a,#2563eb);color:#fff;padding:20px 32px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 12px rgba(37,99,235,.3);}
+    header h1{font-size:1.5rem;font-weight:700;display:flex;align-items:center;gap:10px;}
+    header h1 span.icon{font-size:1.8rem;}
+    header .subtitle{font-size:.85rem;opacity:.8;margin-top:2px;}
+    .header-right{display:flex;gap:10px;align-items:center;}
+
+    /* ── Layout ── */
+    .container{max-width:1400px;margin:0 auto;padding:24px 20px;}
+
+    /* ── Stats ── */
+    .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:24px;}
+    .stat-card{background:var(--card);border-radius:var(--radius);padding:16px 20px;box-shadow:var(--shadow);border-left:4px solid var(--primary);}
+    .stat-card.green{border-color:var(--success);} .stat-card.orange{border-color:var(--warning);} .stat-card.red{border-color:var(--danger);}
+    .stat-card .val{font-size:2rem;font-weight:700;line-height:1;}
+    .stat-card .lbl{font-size:.78rem;color:var(--muted);margin-top:4px;text-transform:uppercase;letter-spacing:.05em;}
+
+    /* ── Panel layout ── */
+    .panel-row{display:grid;grid-template-columns:380px 1fr;gap:20px;align-items:start;}
+    @media(max-width:900px){.panel-row{grid-template-columns:1fr;}}
+
+    /* ── Form Card ── */
+    .form-card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;}
+    .form-card .card-header{padding:14px 20px;font-weight:600;font-size:.95rem;background:linear-gradient(90deg,#eff6ff,#fff);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;}
+    .form-card form{padding:18px 20px;display:flex;flex-direction:column;gap:12px;}
+
+    label{font-size:.8rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:4px;}
+    input,select,textarea{width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-size:.9rem;color:var(--text);background:#fff;transition:border .2s,box-shadow .2s;}
+    input:focus,select:focus,textarea:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(37,99,235,.12);}
+    textarea{resize:vertical;min-height:60px;}
+    .form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+
+    .badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:.75rem;font-weight:600;}
+    .badge-active{background:#dcfce7;color:#15803d;} .badge-inactive{background:#fee2e2;color:#dc2626;}
+    .badge-maintenance{background:#fef9c3;color:#92400e;} .badge-calibration{background:#ede9fe;color:#6d28d9;}
+    .badge-duty{background:#dcfce7;color:#15803d;} .badge-moowr{background:#e0e7ff;color:#3730a3;}
+    .badge-yes{background:#dcfce7;color:#15803d;} .badge-no{background:#fee2e2;color:#dc2626;}
+
+    /* ── Buttons ── */
+    .btn{padding:9px 18px;border:none;border-radius:8px;font-size:.875rem;font-weight:600;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:6px;}
+    .btn-primary{background:var(--primary);color:#fff;} .btn-primary:hover{background:var(--primary-d);transform:translateY(-1px);}
+    .btn-success{background:var(--success);color:#fff;} .btn-success:hover{background:#15803d;}
+    .btn-danger{background:var(--danger);color:#fff;font-size:.78rem;padding:5px 10px;} .btn-danger:hover{background:#b91c1c;}
+    .btn-warning{background:var(--warning);color:#fff;font-size:.78rem;padding:5px 10px;} .btn-warning:hover{background:#b45309;}
+    .btn-outline{background:transparent;color:var(--primary);border:1.5px solid var(--primary);} .btn-outline:hover{background:var(--primary);color:#fff;}
+    .btn-sm{padding:5px 12px;font-size:.78rem;}
+    .form-actions{display:flex;gap:8px;flex-wrap:wrap;}
+
+    /* ── Section divider ── */
+    .form-section-title{font-size:.7rem;font-weight:700;color:var(--primary);text-transform:uppercase;letter-spacing:.08em;padding:6px 0 2px;border-bottom:1.5px solid #dbeafe;margin-top:4px;display:flex;align-items:center;gap:6px;}
+
+    /* ── Toggle ── */
+    .toggle-wrap{display:flex;align-items:center;gap:10px;margin-top:4px;}
+    .toggle-wrap .toggle-lbl{font-size:.88rem;color:var(--text);font-weight:500;}
+    .toggle{position:relative;display:inline-block;width:46px;height:24px;flex-shrink:0;}
+    .toggle input{opacity:0;width:0;height:0;}
+    .slider{position:absolute;cursor:pointer;inset:0;background:#cbd5e1;border-radius:24px;transition:.25s;}
+    .slider:before{content:'';position:absolute;height:18px;width:18px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.25s;}
+    .toggle input:checked+.slider{background:var(--success);}
+    .toggle input:checked+.slider:before{transform:translateX(22px);}
+
+    /* ── Table ── */
+    .table-card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;}
+    .table-toolbar{padding:14px 20px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;border-bottom:1px solid var(--border);background:linear-gradient(90deg,#eff6ff,#fff);}
+    .table-toolbar h2{font-size:.95rem;font-weight:600;flex:1;display:flex;align-items:center;gap:8px;}
+    .search-wrap{position:relative;}
+    .search-wrap input{padding-left:32px;min-width:200px;}
+    .search-wrap .ico{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:.9rem;}
+    .filter-select{padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-size:.85rem;}
+    .table-wrap{overflow-x:auto;}
+    table{width:100%;border-collapse:collapse;font-size:.83rem;}
+    thead th{padding:10px 14px;text-align:left;font-size:.75rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;background:#f8fafc;border-bottom:2px solid var(--border);white-space:nowrap;}
+    tbody tr{border-bottom:1px solid var(--border);transition:background .15s;}
+    tbody tr:hover{background:#f0f9ff;} tbody tr.selected-row{background:#eff6ff;}
+    td{padding:10px 14px;vertical-align:middle;}
+    td .inst-name{font-weight:600;color:var(--text);}
+    td .inst-id{font-size:.75rem;color:var(--muted);margin-top:2px;}
+    .action-cell{display:flex;gap:6px;}
+    .overdue{color:var(--danger);font-weight:600;} .due-soon{color:var(--warning);font-weight:600;}
+    .chip{display:inline-block;background:#eff6ff;color:var(--primary);border-radius:6px;padding:2px 8px;font-size:.75rem;font-weight:600;}
+    .moved-cell{display:flex;flex-direction:column;gap:2px;}
+    .moved-from{font-size:.72rem;color:var(--muted);text-decoration:line-through;}
+    .moved-to{font-size:.82rem;color:var(--text);font-weight:600;}
+
+    /* ── Empty state ── */
+    .empty-state{text-align:center;padding:50px 20px;color:var(--muted);}
+    .empty-state .big-icon{font-size:3rem;margin-bottom:10px;}
+
+    /* ── Pagination ── */
+    .pagination{display:flex;align-items:center;gap:6px;padding:12px 20px;justify-content:flex-end;border-top:1px solid var(--border);}
+    .page-btn{padding:5px 11px;border:1px solid var(--border);border-radius:6px;background:#fff;cursor:pointer;font-size:.82rem;transition:all .15s;}
+    .page-btn:hover,.page-btn.active{background:var(--primary);color:#fff;border-color:var(--primary);}
+
+    /* ── Modal ── */
+    .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:999;align-items:center;justify-content:center;}
+    .modal-overlay.open{display:flex;}
+    .modal{background:#fff;border-radius:var(--radius);padding:28px;max-width:500px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.2);animation:popIn .2s ease;}
+    @keyframes popIn{from{transform:scale(.92);opacity:0}to{transform:scale(1);opacity:1}}
+    .modal h3{margin-bottom:14px;font-size:1.1rem;}
+    .modal p{font-size:.9rem;color:var(--muted);margin-bottom:20px;}
+    .modal-actions{display:flex;gap:10px;justify-content:flex-end;}
+
+    /* ── Toast ── */
+    .toast{position:fixed;bottom:24px;right:24px;background:#1e293b;color:#fff;padding:12px 20px;border-radius:10px;font-size:.88rem;z-index:1000;display:flex;align-items:center;gap:10px;box-shadow:0 8px 24px rgba(0,0,0,.2);transform:translateY(100px);opacity:0;transition:all .3s cubic-bezier(.34,1.56,.64,1);}
+    .toast.show{transform:translateY(0);opacity:1;}
+    .toast.success{border-left:4px solid var(--success);} .toast.error{border-left:4px solid var(--danger);} .toast.info{border-left:4px solid var(--primary);}
+
+    /* ── Import result banner ── */
+    .import-banner{background:#f0fdf4;border:1.5px solid #86efac;border-radius:10px;padding:12px 18px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;font-size:.85rem;animation:slideDown .35s ease;}
+    @keyframes slideDown{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+    .import-banner .close-btn{background:transparent;border:none;font-size:1rem;cursor:pointer;color:var(--muted);}
+    .flash-new{animation:flashGreen 2.5s ease forwards;}
+    .flash-update{animation:flashYellow 2.5s ease forwards;}
+    @keyframes flashGreen{0%{background:#bbf7d0}60%{background:#dcfce7}100%{background:transparent}}
+    @keyframes flashYellow{0%{background:#fef08a}60%{background:#fef9c3}100%{background:transparent}}
+  </style>
+</head>
+<body>
+
+<!-- ── HEADER ── -->
+<header>
+  <div>
+    <h1><span class="icon">🔬</span> Instrument Master List</h1>
+    <div class="subtitle">Equipment Registry · Track · Calibrate · Manage</div>
+  </div>
+  <div class="header-right">
+    <button class="btn btn-outline" style="color:#fff;border-color:rgba(255,255,255,.6)" onclick="exportCSV()">⬇ Export CSV</button>
+    <button class="btn btn-outline" style="color:#fff;border-color:rgba(255,255,255,.6)" onclick="exportTSV()">⬇ Export TSV</button>
+    <button class="btn" style="background:#fff;color:var(--primary)" onclick="document.getElementById('importFileInput').click()">⬆ Import CSV / TSV / Excel</button>
+    <input type="file" id="importFileInput" accept=".csv,.tsv,.txt,.xlsx,.xls,.numbers" style="display:none" onchange="handleImport(event)">
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- ── STATS ── -->
+  <div class="stats">
+    <div class="stat-card"><div class="val" id="statTotal">0</div><div class="lbl">📦 Total Instruments</div></div>
+    <div class="stat-card green"><div class="val" id="statActive">0</div><div class="lbl">✅ Active</div></div>
+    <div class="stat-card orange"><div class="val" id="statCalibDue">0</div><div class="lbl">⚠️ Calibration Due</div></div>
+    <div class="stat-card red"><div class="val" id="statOverdue">0</div><div class="lbl">🔴 Overdue</div></div>
+    <div class="stat-card" style="border-color:#8b5cf6"><div class="val" id="statCategories">0</div><div class="lbl">🏷️ Categories</div></div>
+    <div class="stat-card" style="border-color:#0891b2"><div class="val" id="statAssetTagged">0</div><div class="lbl">🏷 Asset Tagged</div></div>
+    <div class="stat-card" style="border-color:#7c3aed"><div class="val" id="statMoowr">0</div><div class="lbl">🔵 MOOWR</div></div>
+    <div class="stat-card" style="border-color:#0d9488"><div class="val" id="statMoved">0</div><div class="lbl">📦 Relocated</div></div>
+  </div>
+
+  <!-- ── PANEL ROW ── -->
+  <div class="panel-row">
+
+    <!-- ── FORM ── -->
+    <div class="form-card">
+      <div class="card-header">
+        <span>📋</span> <span id="formTitle">Add New Instrument</span>
+      </div>
+      <form id="instrumentForm" onsubmit="saveInstrument(event)">
+        <input type="hidden" id="editId">
+
+        <div class="form-row">
+          <div><label>Instrument ID *</label><input id="fId" placeholder="e.g. INST-001" required></div>
+          <div>
+            <label>Status</label>
+            <select id="fStatus">
+              <option value="Active">Active</option>
+              <option value="Inactive">Inactive</option>
+              <option value="Under Maintenance">Under Maintenance</option>
+              <option value="Under Calibration">Under Calibration</option>
+            </select>
+          </div>
+        </div>
+
+        <div><label>Instrument Name *</label><input id="fName" placeholder="e.g. Digital Multimeter" required></div>
+
+        <div class="form-row">
+          <div>
+            <label>Category *</label>
+            <select id="fCategory" required>
+              <option value="">-- Select --</option>
+              <option>Electrical</option><option>Mechanical</option><option>Thermal</option>
+              <option>Optical</option><option>Pressure</option><option>Flow</option>
+              <option>Chemical</option><option>Biological</option><option>Safety</option><option>Other</option>
+            </select>
+          </div>
+          <div><label>Manufacturer</label><input id="fManufacturer" placeholder="Brand / Make"></div>
+        </div>
+
+        <div class="form-row">
+          <div><label>Model Number</label><input id="fModel" placeholder="Model #"></div>
+          <div><label>Serial Number</label><input id="fSerial" placeholder="Serial / Asset #"></div>
+        </div>
+
+        <div><label>Location / Lab</label><input id="fLocation" placeholder="e.g. Lab 3 / Rack B"></div>
+
+        <div class="form-row">
+          <div><label>Purchase Date</label><input type="date" id="fPurchaseDate"></div>
+          <div><label>Warranty Expiry</label><input type="date" id="fWarranty"></div>
+        </div>
+
+        <div class="form-row">
+          <div><label>Last Calibration</label><input type="date" id="fLastCalib"></div>
+          <div><label>Next Calibration Due</label><input type="date" id="fNextCalib"></div>
+        </div>
+
+        <div><label>Assigned To</label><input id="fAssigned" placeholder="Engineer / Technician name"></div>
+
+        <div class="form-section-title">🧾 Procurement & Compliance</div>
+
+        <div class="form-row">
+          <div><label>PO Number</label><input id="fPoNumber" placeholder="e.g. PO-2024-0087"></div>
+          <div>
+            <label>Duty Paid / MOOWR</label>
+            <select id="fDutyType">
+              <option value="">-- Select --</option>
+              <option value="Duty Paid">Duty Paid</option>
+              <option value="MOOWR">MOOWR</option>
+              <option value="Exempt">Exempt</option>
+              <option value="Not Applicable">Not Applicable</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-section-title">📍 Asset & Location Tracking</div>
+
+        <div>
+          <label>Asset Tagged?</label>
+          <div class="toggle-wrap">
+            <label class="toggle"><input type="checkbox" id="fAssetTagged"><span class="slider"></span></label>
+            <span class="toggle-lbl" id="assetTagLabel">No</span>
+          </div>
+        </div>
+
+        <div><label>Permanent Location</label><input id="fPermLocation" placeholder="e.g. Building A, Room 204, Rack 3"></div>
+        <div><label>Moved To (Current Location)</label><input id="fMovedTo" placeholder="e.g. Lab 5 – Temporary deployment"></div>
+        <div><label>Remarks / Notes</label><textarea id="fRemarks" placeholder="Additional notes..."></textarea></div>
+
+        <div class="form-actions">
+          <button class="btn btn-primary" type="submit" id="saveBtn">💾 Save Instrument</button>
+          <button class="btn btn-outline" type="button" onclick="clearForm()">✕ Clear</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- ── TABLE ── -->
+    <div>
+      <!-- Import result banner injected here by JS -->
+      <div id="bannerSlot"></div>
+
+      <div class="table-card">
+        <div class="table-toolbar">
+          <h2>📊 Instrument Records <span id="recCount" style="font-size:.75rem;color:var(--muted);font-weight:400;margin-left:4px"></span></h2>
+          <div class="search-wrap">
+            <span class="ico">🔍</span>
+            <input id="searchInput" placeholder="Search instruments…" oninput="filterTable()">
+          </div>
+          <select class="filter-select" id="filterCat" onchange="filterTable()">
+            <option value="">All Categories</option>
+            <option>Electrical</option><option>Mechanical</option><option>Thermal</option>
+            <option>Optical</option><option>Pressure</option><option>Flow</option>
+            <option>Chemical</option><option>Biological</option><option>Safety</option><option>Other</option>
+          </select>
+          <select class="filter-select" id="filterStatus" onchange="filterTable()">
+            <option value="">All Status</option>
+            <option>Active</option><option>Inactive</option>
+            <option>Under Maintenance</option><option>Under Calibration</option>
+          </select>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Instrument</th><th>Category</th><th>PO Number</th>
+                <th>Duty / MOOWR</th><th>Asset Tagged</th>
+                <th>Permanent Location</th><th>Current / Moved To</th>
+                <th>Next Calibration</th><th>Status</th><th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+          </table>
+          <div id="emptyState" class="empty-state" style="display:none">
+            <div class="big-icon">🔬</div>
+            <p>No instruments found.<br>Add one using the form, or import a CSV file from the header.</p>
+          </div>
+        </div>
+        <div class="pagination" id="pagination"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── DELETE MODAL ── -->
+<div class="modal-overlay" id="deleteModal">
+  <div class="modal">
+    <h3>🗑 Delete Instrument</h3>
+    <p>Are you sure you want to delete <strong id="deleteInstName"></strong>?<br>This cannot be undone.</p>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-danger" onclick="confirmDelete()">Delete</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── Data ─────────────────────────────────────────────────────────
+const STORAGE_KEY = 'instrument_master_v1';
+let instruments = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+let deleteTarget = null, currentPage = 1;
+const PAGE_SIZE = 8;
+let filtered = [];
+
+function saveData() { localStorage.setItem(STORAGE_KEY, JSON.stringify(instruments)); }
+
+// ── Auto ID ──────────────────────────────────────────────────────
+function generateId() {
+  const max = instruments.reduce((m,i) => Math.max(m, parseInt((i.id||'').replace(/\D/g,''))||0), 0);
+  return 'INST-' + String(max + 1).padStart(3,'0');
+}
+
+// ── Save (form) ──────────────────────────────────────────────────
+function saveInstrument(e) {
+  e.preventDefault();
+  const editId = document.getElementById('editId').value;
+  const rec = readForm();
+  if (editId) {
+    const idx = instruments.findIndex(i => i.id === editId);
+    if (idx > -1) { instruments[idx] = rec; showToast('✅ Instrument updated!','success'); }
+  } else {
+    if (instruments.find(i => i.id === rec.id)) { showToast('⚠️ ID already exists!','error'); return; }
+    instruments.push(rec);
+    showToast('✅ Instrument added!','success');
+  }
+  saveData(); clearForm(); renderAll();
+}
+
+function readForm() {
+  return {
+    id:           document.getElementById('fId').value.trim(),
+    name:         document.getElementById('fName').value.trim(),
+    category:     document.getElementById('fCategory').value,
+    status:       document.getElementById('fStatus').value,
+    manufacturer: document.getElementById('fManufacturer').value.trim(),
+    model:        document.getElementById('fModel').value.trim(),
+    serial:       document.getElementById('fSerial').value.trim(),
+    location:     document.getElementById('fLocation').value.trim(),
+    purchaseDate: document.getElementById('fPurchaseDate').value,
+    warranty:     document.getElementById('fWarranty').value,
+    lastCalib:    document.getElementById('fLastCalib').value,
+    nextCalib:    document.getElementById('fNextCalib').value,
+    assigned:     document.getElementById('fAssigned').value.trim(),
+    poNumber:     document.getElementById('fPoNumber').value.trim(),
+    dutyType:     document.getElementById('fDutyType').value,
+    assetTagged:  document.getElementById('fAssetTagged').checked,
+    permLocation: document.getElementById('fPermLocation').value.trim(),
+    movedTo:      document.getElementById('fMovedTo').value.trim(),
+    remarks:      document.getElementById('fRemarks').value.trim(),
+    updatedAt:    new Date().toISOString()
+  };
+}
+
+function clearForm() {
+  document.getElementById('instrumentForm').reset();
+  document.getElementById('editId').value = '';
+  document.getElementById('formTitle').textContent = 'Add New Instrument';
+  document.getElementById('saveBtn').textContent = '💾 Save Instrument';
+  document.getElementById('fId').value = generateId();
+  document.getElementById('assetTagLabel').textContent = 'No';
+  document.querySelectorAll('#tableBody tr').forEach(r => r.classList.remove('selected-row'));
+}
+
+// ── Edit ─────────────────────────────────────────────────────────
+function editInstrument(id) {
+  const rec = instruments.find(i => i.id === id); if (!rec) return;
+  document.getElementById('editId').value        = rec.id;
+  document.getElementById('fId').value           = rec.id;
+  document.getElementById('fName').value         = rec.name;
+  document.getElementById('fCategory').value     = rec.category;
+  document.getElementById('fStatus').value       = rec.status;
+  document.getElementById('fManufacturer').value = rec.manufacturer || '';
+  document.getElementById('fModel').value        = rec.model        || '';
+  document.getElementById('fSerial').value       = rec.serial       || '';
+  document.getElementById('fLocation').value     = rec.location     || '';
+  document.getElementById('fPurchaseDate').value = rec.purchaseDate || '';
+  document.getElementById('fWarranty').value     = rec.warranty     || '';
+  document.getElementById('fLastCalib').value    = rec.lastCalib    || '';
+  document.getElementById('fNextCalib').value    = rec.nextCalib    || '';
+  document.getElementById('fAssigned').value     = rec.assigned     || '';
+  document.getElementById('fPoNumber').value     = rec.poNumber     || '';
+  document.getElementById('fDutyType').value     = rec.dutyType     || '';
+  document.getElementById('fAssetTagged').checked= !!rec.assetTagged;
+  document.getElementById('assetTagLabel').textContent = rec.assetTagged ? 'Yes' : 'No';
+  document.getElementById('fPermLocation').value = rec.permLocation || '';
+  document.getElementById('fMovedTo').value      = rec.movedTo      || '';
+  document.getElementById('fRemarks').value      = rec.remarks      || '';
+  document.getElementById('formTitle').textContent = `✏️ Editing: ${rec.name}`;
+  document.getElementById('saveBtn').textContent = '💾 Update Instrument';
+  document.querySelectorAll('#tableBody tr').forEach(r => r.classList.remove('selected-row'));
+  const row = document.querySelector(`#tableBody tr[data-id="${id}"]`);
+  if (row) row.classList.add('selected-row');
+  document.querySelector('.form-card').scrollIntoView({ behavior:'smooth' });
+}
+
+// ── Delete ────────────────────────────────────────────────────────
+function deleteInstrument(id) {
+  deleteTarget = id;
+  const rec = instruments.find(i => i.id === id);
+  document.getElementById('deleteInstName').textContent = rec ? rec.name : id;
+  document.getElementById('deleteModal').classList.add('open');
+}
+function confirmDelete() {
+  instruments = instruments.filter(i => i.id !== deleteTarget);
+  saveData(); closeModal(); renderAll();
+  showToast('🗑 Instrument deleted.','info');
+}
+function closeModal() {
+  document.getElementById('deleteModal').classList.remove('open');
+  deleteTarget = null;
+}
+
+// ── Filter & Render ───────────────────────────────────────────────
+function filterTable() {
+  const q   = document.getElementById('searchInput').value.toLowerCase();
+  const cat = document.getElementById('filterCat').value;
+  const st  = document.getElementById('filterStatus').value;
+  filtered = instruments.filter(i => {
+    const match = !q || [i.id,i.name,i.serial,i.manufacturer,i.model,i.location,i.assigned,i.poNumber,i.permLocation,i.movedTo]
+                        .some(v => (v||'').toLowerCase().includes(q));
+    return match && (!cat || i.category===cat) && (!st || i.status===st);
+  });
+  currentPage = 1; renderTable();
+}
+
+function renderAll() { filterTable(); updateStats(); }
+
+function renderTable() {
+  const tbody = document.getElementById('tableBody');
+  const empty = document.getElementById('emptyState');
+  const today = new Date(); today.setHours(0,0,0,0);
+  const soon  = new Date(today); soon.setDate(soon.getDate()+30);
+
+  document.getElementById('recCount').textContent = filtered.length ? `— ${filtered.length} record${filtered.length!==1?'s':''}` : '';
+
+  if (!filtered.length) { tbody.innerHTML=''; empty.style.display='block'; renderPagination(); return; }
+  empty.style.display = 'none';
+
+  const start = (currentPage-1)*PAGE_SIZE;
+  const page  = filtered.slice(start, start+PAGE_SIZE);
+
+  tbody.innerHTML = page.map(i => {
+    const sc = {'Active':'badge-active','Inactive':'badge-inactive','Under Maintenance':'badge-maintenance','Under Calibration':'badge-calibration'}[i.status]||'badge-active';
+    let calib = i.nextCalib || '<span style="color:var(--muted)">—</span>';
+    if (i.nextCalib) {
+      const d = new Date(i.nextCalib); d.setHours(0,0,0,0);
+      if (d < today)       calib = `<span class="overdue">🔴 ${i.nextCalib} OVERDUE</span>`;
+      else if (d <= soon)  calib = `<span class="due-soon">⚠️ ${i.nextCalib}</span>`;
+    }
+    const duty  = i.dutyType ? `<span class="badge ${i.dutyType==='MOOWR'?'badge-moowr':'badge-duty'}">${esc(i.dutyType)}</span>` : '<span style="color:var(--muted)">—</span>';
+    const asset = i.assetTagged ? '<span class="badge badge-yes">✔ Yes</span>' : '<span class="badge badge-no">✘ No</span>';
+    const locCell = i.movedTo
+      ? `<div class="moved-cell"><span class="moved-from">${esc(i.permLocation)||'—'}</span><span class="moved-to">📦 ${esc(i.movedTo)}</span></div>`
+      : (i.permLocation ? esc(i.permLocation) : '<span style="color:var(--muted)">—</span>');
+
+    return `<tr data-id="${esc(i.id)}">
+      <td><div class="inst-name">${esc(i.name)}</div><div class="inst-id">${esc(i.id)}${i.manufacturer?' · '+esc(i.manufacturer):''}</div></td>
+      <td><span class="chip">${esc(i.category)||'—'}</span></td>
+      <td>${esc(i.poNumber)||'<span style="color:var(--muted)">—</span>'}</td>
+      <td>${duty}</td>
+      <td>${asset}</td>
+      <td>${esc(i.permLocation)||'<span style="color:var(--muted)">—</span>'}</td>
+      <td>${locCell}</td>
+      <td>${calib}</td>
+      <td><span class="badge ${sc}">${i.status}</span></td>
+      <td><div class="action-cell">
+        <button class="btn btn-warning btn-sm" onclick="editInstrument('${esc(i.id)}')">✏️ Edit</button>
+        <button class="btn btn-danger btn-sm"  onclick="deleteInstrument('${esc(i.id)}')">🗑</button>
+      </div></td>
+    </tr>`;
+  }).join('');
+  renderPagination();
+}
+
+function esc(s){ return s ? String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') : ''; }
+
+function renderPagination() {
+  const total = Math.ceil(filtered.length / PAGE_SIZE);
+  const pg = document.getElementById('pagination');
+  if (total<=1) { pg.innerHTML=''; return; }
+  let h='';
+  for (let i=1;i<=total;i++) h+=`<button class="page-btn${i===currentPage?' active':''}" onclick="goPage(${i})">${i}</button>`;
+  pg.innerHTML = `<span style="font-size:.8rem;color:var(--muted);margin-right:8px">${filtered.length} records</span>`+h;
+}
+function goPage(n){ currentPage=n; renderTable(); }
+
+// ── Stats ─────────────────────────────────────────────────────────
+function updateStats() {
+  const today=new Date(); today.setHours(0,0,0,0);
+  const soon=new Date(today); soon.setDate(soon.getDate()+30);
+  document.getElementById('statTotal').textContent      = instruments.length;
+  document.getElementById('statActive').textContent     = instruments.filter(i=>i.status==='Active').length;
+  document.getElementById('statOverdue').textContent    = instruments.filter(i=>i.nextCalib&&new Date(i.nextCalib)<today).length;
+  document.getElementById('statCalibDue').textContent   = instruments.filter(i=>i.nextCalib&&new Date(i.nextCalib)>=today&&new Date(i.nextCalib)<=soon).length;
+  document.getElementById('statCategories').textContent = new Set(instruments.map(i=>i.category).filter(Boolean)).size;
+  document.getElementById('statAssetTagged').textContent= instruments.filter(i=>i.assetTagged).length;
+  document.getElementById('statMoowr').textContent      = instruments.filter(i=>i.dutyType==='MOOWR').length;
+  document.getElementById('statMoved').textContent      = instruments.filter(i=>i.movedTo&&i.movedTo!==i.permLocation).length;
+}
+
+// ── Import (CSV / TSV / Excel .xlsx) ──────────────────────────────
+function handleImport(e) {
+  const file = e.target.files[0]; if (!file) return;
+  const ext  = file.name.split('.').pop().toLowerCase();
+
+  if (ext === 'xlsx' || ext === 'xls') {
+    // ── Excel path via SheetJS ──
+    const reader = new FileReader();
+    reader.onload = ev => {
+      try {
+        const wb   = XLSX.read(ev.target.result, { type:'array', cellDates:true });
+        const ws   = wb.Sheets[wb.SheetNames[0]];          // first sheet
+        const rows = XLSX.utils.sheet_to_json(ws, { defval:'' });
+        processRows(rows, file.name);
+      } catch(err) {
+        showToast('❌ Could not read Excel file: ' + err.message, 'error');
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  } else {
+    // ── CSV / TSV path ──
+    const reader = new FileReader();
+    reader.onload = ev => {
+      let text = ev.target.result;
+      if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+      text = text.replace(/\r\n/g,'\n').replace(/\r/g,'\n');
+      const lines = text.split('\n').filter(l => l.trim());
+      if (lines.length < 2) { showToast('File has no data rows!','error'); return; }
+
+      const delim = lines[0].includes('\t') ? '\t' : ',';
+
+      function parseLine(line) {
+        if (delim==='\t') return line.split('\t').map(c=>c.trim().replace(/^"|"$/g,''));
+        const res=[]; let cur='', inQ=false;
+        for (let ci=0; ci<line.length; ci++) {
+          const ch=line[ci];
+          if (inQ){ if(ch==='"'&&line[ci+1]==='"'){cur+='"';ci++;} else if(ch==='"'){inQ=false;} else cur+=ch; }
+          else    { if(ch==='"'){inQ=true;} else if(ch===','){res.push(cur.trim());cur='';} else cur+=ch; }
+        }
+        res.push(cur.trim()); return res;
+      }
+
+      const headers = parseLine(lines[0]);
+      const rows = lines.slice(1).filter(l=>l.trim()).map(line => {
+        const vals = parseLine(line);
+        const obj  = {};
+        headers.forEach((h,i) => { obj[h] = (vals[i]||'').trim(); });
+        return obj;
+      });
+      processRows(rows, file.name);
+    };
+    reader.readAsText(file, 'utf-8');
+  }
+  e.target.value = '';
+}
+
+// ── Core processor — takes array of {header:value} objects ────────
+function processRows(rows, filename) {
+  if (!rows.length) { showToast('No data rows found in file!','error'); return; }
+
+  // Normalise a header key for alias matching
+  const norm = s => String(s||'').toLowerCase().replace(/[^a-z0-9]/g,'');
+
+  const ALIASES = {
+    id:          ['id','instrumentid','instid'],
+    name:        ['name','instrumentname','description','instname'],
+    category:    ['category','type','instrumenttype'],
+    status:      ['status'],
+    manufacturer:['manufacturer','make','brand','mfr'],
+    model:       ['model','modelnumber','modelno'],
+    serial:      ['serial','serialnumber','serialno','sn','assetno'],
+    location:    ['location','lab','room'],
+    purchaseDate:['purchasedate','purchaseddate','dateofpurchase'],
+    warranty:    ['warrantyexpiry','warrantyexpdate','warranty'],
+    lastCalib:   ['lastcalibration','lastcalib','calibdate'],
+    nextCalib:   ['nextcalibration','nextcalib','calibrationdue','nextcalibdate'],
+    assigned:    ['assignedto','assigned','engineer','technician'],
+    poNumber:    ['ponumber','po','purchaseorder','pono'],
+    dutyType:    ['dutytype','dutypaid','moowr','duty'],
+    assetTagged: ['assettagged','tagged','assettag'],
+    permLocation:['permanentlocation','permlocation','permanentloc','permanentplace'],
+    movedTo:     ['movedto','currentlocation','moved','currentloc'],
+    remarks:     ['remarks','notes','comments','remark']
+  };
+
+  // Build a key→fieldName map from first row's headers
+  const rawKeys  = Object.keys(rows[0]);
+  const keyMap   = {};
+  rawKeys.forEach(rk => {
+    const n = norm(rk);
+    for (const [field, aliases] of Object.entries(ALIASES)) {
+      if (aliases.includes(n)) { keyMap[rk] = field; break; }
+    }
+  });
+
+  const get = (row, field) => {
+    const rk = rawKeys.find(k => keyMap[k] === field);
+    return rk !== undefined ? String(row[rk]||'').trim() : '';
+  };
+
+  let added=0, updated=0, skipped=0;
+  const newIds=[], updatedIds=[];
+
+  rows.forEach(row => {
+    const id   = get(row,'id');
+    const name = get(row,'name');
+    if (!id || !name) { skipped++; return; }
+
+    const rec = {
+      id, name,
+      category:     get(row,'category'),
+      status:       get(row,'status') || 'Active',
+      manufacturer: get(row,'manufacturer'),
+      model:        get(row,'model'),
+      serial:       get(row,'serial'),
+      location:     get(row,'location'),
+      purchaseDate: get(row,'purchaseDate'),
+      warranty:     get(row,'warranty'),
+      lastCalib:    get(row,'lastCalib'),
+      nextCalib:    get(row,'nextCalib'),
+      assigned:     get(row,'assigned'),
+      poNumber:     get(row,'poNumber'),
+      dutyType:     get(row,'dutyType'),
+      assetTagged:  ['yes','true','1','✔'].includes(get(row,'assetTagged').toLowerCase()),
+      permLocation: get(row,'permLocation'),
+      movedTo:      get(row,'movedTo'),
+      remarks:      get(row,'remarks'),
+      updatedAt:    new Date().toISOString()
+    };
+
+    const existIdx = instruments.findIndex(i => i.id === rec.id);
+    if (existIdx > -1) {
+      instruments[existIdx] = { ...instruments[existIdx], ...rec };
+      updated++; updatedIds.push(rec.id);
+    } else {
+      instruments.push(rec);
+      added++; newIds.push(rec.id);
+    }
+  });
+
+  saveData();
+
+  // Clear filters so all imported rows are visible
+  document.getElementById('searchInput').value  = '';
+  document.getElementById('filterCat').value    = '';
+  document.getElementById('filterStatus').value = '';
+  renderAll();
+
+  // Flash new rows green, updated rows yellow
+  setTimeout(() => {
+    newIds.forEach(id => {
+      const row = document.querySelector(`#tableBody tr[data-id="${id}"]`);
+      if (row) row.classList.add('flash-new');
+    });
+    updatedIds.forEach(id => {
+      const row = document.querySelector(`#tableBody tr[data-id="${id}"]`);
+      if (row) row.classList.add('flash-update');
+    });
+    document.querySelector('.table-card').scrollIntoView({ behavior:'smooth', block:'start' });
+  }, 80);
+
+  showBanner(added, updated, skipped);
+  showToast(`✅ ${added} added · ${updated} updated · ${skipped} skipped`, 'success');
+}
+
+function showBanner(added, updated, skipped) {
+  const slot = document.getElementById('bannerSlot');
+  const parts = [];
+  if (added)   parts.push(`<strong style="color:#15803d">✅ ${added} new record${added!==1?'s':''} added</strong>`);
+  if (updated) parts.push(`<strong style="color:#92400e">🔄 ${updated} record${updated!==1?'s':''} updated</strong>`);
+  if (skipped) parts.push(`<strong style="color:#dc2626">⏭ ${skipped} row${skipped!==1?'s':''} skipped</strong>`);
+  if (!parts.length) return;
+
+  slot.innerHTML = `
+    <div class="import-banner">
+      <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+        <span style="font-size:1.3rem">📋</span>
+        <span>Import complete — ${parts.join(' &nbsp;·&nbsp; ')}</span>
+      </div>
+      <button class="close-btn" onclick="document.getElementById('bannerSlot').innerHTML=''">✕</button>
+    </div>`;
+  // Auto-dismiss after 8 s
+  setTimeout(() => { slot.innerHTML = ''; }, 8000);
+}
+
+// ── Export ─────────────────────────────────────────────────────────
+const HEADERS = ['ID','Name','Category','Status','Manufacturer','Model','Serial Number',
+  'Location','Purchase Date','Warranty Expiry','Last Calibration','Next Calibration',
+  'Assigned To','PO Number','Duty Type','Asset Tagged','Permanent Location','Moved To','Remarks'];
+
+function toRow(i){
+  return [i.id,i.name,i.category,i.status,i.manufacturer,i.model,i.serial,i.location,
+          i.purchaseDate,i.warranty,i.lastCalib,i.nextCalib,i.assigned,
+          i.poNumber,i.dutyType,i.assetTagged?'Yes':'No',i.permLocation,i.movedTo,i.remarks];
+}
+
+function exportCSV() {
+  if (!instruments.length) { showToast('No data to export!','error'); return; }
+  const q = v => '"'+(v===undefined||v===null?'':String(v)).replace(/"/g,'""')+'"';
+  const csv = '\uFEFF'+[HEADERS.map(q).join(','), ...instruments.map(i=>toRow(i).map(q).join(','))].join('\r\n');
+  dl(csv,'text/csv',`InstrumentMaster_${ds()}.csv`);
+  showToast('📥 CSV exported — open in Numbers!','success');
+}
+
+function exportTSV() {
+  if (!instruments.length) { showToast('No data to export!','error'); return; }
+  const t = v => (v===undefined||v===null?'':String(v)).replace(/\t/g,' ').replace(/\r?\n/g,' ');
+  const tsv = '\uFEFF'+[HEADERS.join('\t'), ...instruments.map(i=>toRow(i).map(t).join('\t'))].join('\r\n');
+  dl(tsv,'text/tab-separated-values',`InstrumentMaster_${ds()}.tsv`);
+  showToast('📋 TSV exported!','success');
+}
+
+function dl(content, mime, filename) {
+  const url = URL.createObjectURL(new Blob([content],{type:mime+';charset=utf-8;'}));
+  Object.assign(document.createElement('a'),{href:url,download:filename}).click();
+  URL.revokeObjectURL(url);
+}
+function ds(){ return new Date().toISOString().slice(0,10); }
+
+// ── Toast ──────────────────────────────────────────────────────────
+function showToast(msg, type='info') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = `toast ${type} show`;
+  setTimeout(() => t.classList.remove('show'), 4000);
+}
+
+// ── Init ───────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('fId').value = generateId();
+  document.getElementById('fAssetTagged').addEventListener('change', function(){
+    document.getElementById('assetTagLabel').textContent = this.checked ? 'Yes' : 'No';
+  });
+  renderAll();
+});
+</script>
+</body>
+</html>
